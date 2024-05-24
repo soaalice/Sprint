@@ -20,5 +20,6 @@ Pour utiliser le FrontController il faut configurer votre web.xml comme tel:
     </servlet-mapping>
 </web-app>
 
-La valeur dans <param-value> devrait contenir le chemin de votre package.
-Et vos controllers devront avoir l'annotation @AnnotationController, TestController est un exemple.
+La valeur dans < param-value > devrait contenir le chemin de votre package.
+Et vos controllers devront avoir l'annotation @AnnotationController.
+Annotez vos fonctions par l'annotation @Get(url="").
