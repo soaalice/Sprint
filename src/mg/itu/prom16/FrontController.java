@@ -18,7 +18,7 @@ import mg.annotation.AnnotationController;
 import mg.annotation.Get;
 
 public class FrontController extends HttpServlet{
-    // List<Class<?>> ls;
+    List<Class<?>> ls;
     HashMap<String,Mapping> hashMap;
 
     public void init() throws ServletException {
@@ -29,11 +29,12 @@ public class FrontController extends HttpServlet{
     private void scan(){
         String pack = this.getInitParameter("controllerPackage");
         try {
-            List<Class<?>> ls = getClassesInPackage(pack);
+            // List<Class<?>> ls = getClassesInPackage(pack);
+            ls = getClassesInPackage(pack);
             hashMap = initializeHashMap(ls);
         } catch (Exception e) {
             e.printStackTrace();
-            // ls = new ArrayList<>();
+            ls = new ArrayList<>();
             hashMap = new HashMap<>();
         }
     }
@@ -108,9 +109,15 @@ public class FrontController extends HttpServlet{
             String uri = extract(request.getRequestURI());
             Mapping m = hashMap.get(uri);
             if (m == null) {
-                out.println("Aucun controller n'a cette methode: "+uri);
+                out.println("Aucun controller n'a une methode ayant le mapping : "+uri);
             }else{
-                out.println("Controller correspondant: "+m.classe);
+                // out.println("Controller correspondant: "+m.classe);
+                try {
+                    Object obj = Class.forName(this.getInitParameter("controllerPackage")+"."+m.classe).newInstance();
+                    out.println(obj.getClass().getDeclaredMethod(m.methode).invoke(obj));
+                } catch (Exception e) {
+                    out.println(e.getMessage());
+                }
             }
         }
     }
