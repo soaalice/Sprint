@@ -1,4 +1,4 @@
-# Sprint1
+# Sprint4
 
 Pour utiliser le FrontController il faut configurer votre web.xml comme tel:
 
@@ -20,5 +20,7 @@ Pour utiliser le FrontController il faut configurer votre web.xml comme tel:
     </servlet-mapping>
 </web-app>
 
-La valeur dans <param-value> devrait contenir le chemin de votre package.
-Et vos controllers devront avoir l'annotation @AnnotationController, TestController est un exemple.
+La valeur dans < param-value > devrait contenir le chemin de votre package.
+Et vos controllers devront avoir l'annotation @AnnotationController, et leurs fonctions par @Get(url="votreUrl").
+Ces fonctions doivent retourner soit un String soit un ModelView (dont les datas sont definies).
+Assurez-vous que la page désignée par l'url de votre ModelView existe.
