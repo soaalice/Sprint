@@ -11,6 +11,7 @@ import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
 
+import dev.ModelView;
 import dev.util.Mapping;
 import jakarta.servlet.*;
 import jakarta.servlet.http.*;
@@ -98,14 +99,7 @@ public class FrontController extends HttpServlet{
             throws ServletException, IOException {
         response.setContentType("text/plain");
         try (PrintWriter out = response.getWriter()) {
-            // out.println("URL: "+request.getRequestURL());
-            // out.println("Liste des Controllers:");
-            // if (ls.isEmpty()) {
-            //     out.println("La liste est vide.");
-            // }
-            // for (int i = 0; i < ls.size(); i++) {
-            //     out.println((i+1)+": "+ls.get(i));
-            // }
+            out.println("URL: "+request.getRequestURL());
             String uri = extract(request.getRequestURI());
             Mapping m = hashMap.get(uri);
             if (m == null) {
@@ -114,7 +108,18 @@ public class FrontController extends HttpServlet{
                 // out.println("Controller correspondant: "+m.classe);
                 try {
                     Object obj = Class.forName(this.getInitParameter("controllerPackage")+"."+m.classe).newInstance();
-                    out.println(obj.getClass().getDeclaredMethod(m.methode).invoke(obj));
+                    // out.println(obj.getClass().getDeclaredMethod(m.methode).invoke(obj));
+                    Object value = obj.getClass().getDeclaredMethod(m.methode).invoke(obj);
+                    if (value instanceof ModelView mw) {
+                        HashMap<String, Object> datas = mw.getData();
+                        for (String key : datas.keySet()) {
+                            request.setAttribute(key, datas.get(key));
+                        }
+                        RequestDispatcher dispatcher = request.getRequestDispatcher(mw.getUrl());
+                        dispatcher.forward(request, response);
+                    } else {
+                        out.println(value);
+                    }
                 } catch (Exception e) {
                     out.println(e.getMessage());
                 }

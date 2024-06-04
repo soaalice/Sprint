@@ -1,3 +1,4 @@
+
 package mg.annotation;
 
 import java.lang.annotation.ElementType;
