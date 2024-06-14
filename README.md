@@ -1,4 +1,4 @@
-# Sprint4
+# Sprint5
 
 Pour utiliser le FrontController il faut configurer votre web.xml comme tel:
 
