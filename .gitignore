@@ -397,7 +397,7 @@ FodyWeavers.xsd
 # JetBrains Rider
 *.sln.iml
 
-# Script ako rehetra
+# Script ako rehetra + dossiers tsy src
 *.bat
 bin/
 lib/

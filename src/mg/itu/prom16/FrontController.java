@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.lang.reflect.Method;
+import java.lang.reflect.Parameter;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.util.ArrayList;
@@ -18,16 +19,16 @@ import jakarta.servlet.http.*;
 import mg.annotation.AnnotationController;
 import mg.annotation.Get;
 
-public class FrontController extends HttpServlet {
+public class FrontController extends HttpServlet{
     List<Class<?>> ls;
-    HashMap<String, Mapping> hashMap;
+    HashMap<String,Mapping> hashMap;
 
     public void init() throws ServletException {
         super.init();
         scan();
     }
 
-    private void scan() throws ServletException {
+    private void scan() throws ServletException{
         String pack = this.getInitParameter("controllerPackage");
         if (pack == null) {
             throw new ServletException("Vous devez configurer le nom du package de vos controllers dans votre web.xml");
@@ -37,7 +38,7 @@ public class FrontController extends HttpServlet {
             ls = getClassesInPackage(pack);
             hashMap = initializeHashMap(ls);
             if (hashMap.size() == 0) {
-                throw new ServletException("Vous n'avez aucun controller dans le package: " + pack);
+                throw new ServletException("Vous n'avez aucun controller dans le package: "+pack);
             }
         } catch (Exception e) {
             if (e instanceof ServletException) {
@@ -68,8 +69,7 @@ public class FrontController extends HttpServlet {
                     File[] files = directory.listFiles();
                     for (File file : files) {
                         if (file.isFile() && file.getName().endsWith(".class")) {
-                            String className = packageName + '.'
-                                    + file.getName().substring(0, file.getName().length() - 6);
+                            String className = packageName + '.' + file.getName().substring(0, file.getName().length() - 6);
                             Class<?> clazz = Class.forName(className);
                             if (clazz.isAnnotationPresent(AnnotationController.class)) {
                                 classes.add(clazz);
@@ -80,12 +80,12 @@ public class FrontController extends HttpServlet {
             }
         }
         // if (isEmpty) {
-        // throw new ServletException("Le package '"+packageName+"' est vide.");
+        //     throw new ServletException("Le package '"+packageName+"' est vide.");
         // }
         return classes;
     }
 
-    HashMap<String, Mapping> initializeHashMap(List<Class<?>> ls) throws ServletException {
+    HashMap<String, Mapping> initializeHashMap(List<Class<?>> ls) throws ServletException{
         HashMap<String, Mapping> map = new HashMap<>();
         for (Class<?> class1 : ls) {
             Method[] methods = class1.getDeclaredMethods();
@@ -93,11 +93,10 @@ public class FrontController extends HttpServlet {
                 if (m.isAnnotationPresent(Get.class)) {
                     Mapping mapping = new Mapping();
                     mapping.classe = class1.getSimpleName();
-                    mapping.methode = m.getName();
+                    mapping.methode = m;
                     Get annotation = m.getAnnotation(Get.class);
                     if (map.containsKey(annotation.url())) {
-                        throw new ServletException("Doublon: l'url '" + annotation.url() + "'' est attribuée dans "
-                                + map.get(annotation.url()).classe + " et " + mapping.classe);
+                        throw new ServletException("Doublon: l'url '"+annotation.url()+"'' est attribuée dans "+map.get(annotation.url()).classe+" et "+mapping.classe);
                     }
                     map.put(annotation.url(), mapping);
                 }
@@ -126,13 +125,18 @@ public class FrontController extends HttpServlet {
                 String uri = extract(request.getRequestURI());
                 Mapping m = hashMap.get(uri);
                 if (m == null) {
-                    throw new ServletException("Aucun controller n'a une methode ayant le mapping : '" + uri + "'");
-                } else {
+                    throw new ServletException("Aucun controller n'a une methode ayant le mapping : '" + uri+"'");
+                }else{
                     try {
-                        Object obj = Class.forName(this.getInitParameter("controllerPackage") + "." + m.classe)
-                                .newInstance();
+                        Object obj = Class.forName(this.getInitParameter("controllerPackage")+"."+m.classe).newInstance();
+                        Enumeration<String> keys=request.getParameterNames();
+                        HashMap<String,String> requestParameter=new HashMap<String,String>();
+                        while(keys.hasMoreElements()){
+                            String key=keys.nextElement();
+                            requestParameter.put(key, request.getParameter(key));
+                        }
                         // out.println(obj.getClass().getDeclaredMethod(m.methode).invoke(obj));
-                        Object value = obj.getClass().getDeclaredMethod(m.methode).invoke(obj);
+                        Object value = m.invoke(requestParameter,obj);
                         if (value instanceof ModelView mw) {
                             HashMap<String, Object> datas = mw.getData();
                             for (String key : datas.keySet()) {
@@ -149,7 +153,7 @@ public class FrontController extends HttpServlet {
                         // out.println(e.getMessage());
                         e.printStackTrace(out);
                     }
-                }
+                }    
             } catch (Exception e) {
                 // e.printStackTrace(out);
                 out.println(e.getMessage());
@@ -163,13 +167,13 @@ public class FrontController extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        processRequest(request, response);
+       processRequest(request, response);
     }
 
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        processRequest(request, response);
+       processRequest(request, response);
     }
 
     @Override
