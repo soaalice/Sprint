@@ -133,6 +133,7 @@ public class FrontController extends HttpServlet{
                         HashMap<String,String> requestParameter=new HashMap<String,String>();
                         while(keys.hasMoreElements()){
                             String key=keys.nextElement();
+                            System.out.println(key);
                             requestParameter.put(key, request.getParameter(key));
                         }
                         // out.println(obj.getClass().getDeclaredMethod(m.methode).invoke(obj));
