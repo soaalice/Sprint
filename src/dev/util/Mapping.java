@@ -6,13 +6,15 @@ import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Set;
 
+import dev.CustomSession;
+import jakarta.servlet.http.HttpSession;
 import mg.annotation.Param;
 
 public class Mapping {
     public String classe;
     public Method methode;
 
-    public Object invoke(HashMap<String,String> requestParameter,Object obj) throws Exception{
+    public Object invoke(HashMap<String,String> requestParameter,Object obj, CustomSession session) throws Exception{
         Parameter[] parameterFunction=this.methode.getParameters();
         Object[] parameterValues=new Object[parameterFunction.length];
         for(int i=0;i<parameterFunction.length;i++){
@@ -24,6 +26,9 @@ public class Mapping {
                 System.out.println(parameterNameFunction);
                 if(parameterFunction[i].getType().isPrimitive() || parameterFunction[i].getType().equals(String.class)){
                     parameterValues[i]=requestParameter.get(parameterNameFunction);
+                }
+                else if (parameterFunction[i].getType().equals(CustomSession.class)) {
+                    parameterValues[i] = session;
                 } 
                 else {
                     HashMap<String,String> values=getAttributeValue(requestParameter,parameterNameFunction);
@@ -33,9 +38,9 @@ public class Mapping {
                 }
                 System.out.println(parameterValues[i]);
             } 
-            // else if (parameterFunction[i] instanceof CustomSession) {
-                
-            // }
+            else if (parameterFunction[i].getType().equals(CustomSession.class)) {
+                parameterValues[i] = session;
+            }
             else {
                 throw new Exception("Ce parametre n'est pas annoté.");
             }

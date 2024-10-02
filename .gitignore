@@ -399,6 +399,7 @@ FodyWeavers.xsd
 
 # Script ako rehetra + dossiers tsy src
 *.bat
+*.jar
 bin/
 lib/
 views/

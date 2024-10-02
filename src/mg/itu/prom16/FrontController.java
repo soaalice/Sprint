@@ -12,6 +12,7 @@ import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
 
+import dev.CustomSession;
 import dev.ModelView;
 import dev.util.Mapping;
 import jakarta.servlet.*;
@@ -22,6 +23,7 @@ import mg.annotation.Get;
 public class FrontController extends HttpServlet{
     List<Class<?>> ls;
     HashMap<String,Mapping> hashMap;
+    CustomSession session;
 
     public void init() throws ServletException {
         super.init();
@@ -129,6 +131,8 @@ public class FrontController extends HttpServlet{
                 }else{
                     try {
                         Object obj = Class.forName(this.getInitParameter("controllerPackage")+"."+m.classe).newInstance();
+
+                        // Atao anaty HashMap ny cles sy ny parametres any
                         Enumeration<String> keys=request.getParameterNames();
                         HashMap<String,String> requestParameter=new HashMap<String,String>();
                         while(keys.hasMoreElements()){
@@ -137,7 +141,8 @@ public class FrontController extends HttpServlet{
                             requestParameter.put(key, request.getParameter(key));
                         }
                         // out.println(obj.getClass().getDeclaredMethod(m.methode).invoke(obj));
-                        Object value = m.invoke(requestParameter,obj);
+                        // Appeler la methode avec les parametres, l'objet et la session
+                        Object value = m.invoke(requestParameter,obj,session);
                         if (value instanceof ModelView mw) {
                             HashMap<String, Object> datas = mw.getData();
                             for (String key : datas.keySet()) {
