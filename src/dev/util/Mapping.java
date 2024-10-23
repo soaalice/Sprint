@@ -9,10 +9,15 @@ import java.util.Set;
 import dev.CustomSession;
 import jakarta.servlet.http.HttpSession;
 import mg.annotation.Param;
+import mg.annotation.RestApi;
 
 public class Mapping {
     public String classe;
     public Method methode;
+
+    public boolean isRestApi(){
+        return methode.isAnnotationPresent(RestApi.class);
+    }
 
     public Object invoke(HashMap<String,String> requestParameter,Object obj, CustomSession session) throws Exception{
         Parameter[] parameterFunction=this.methode.getParameters();

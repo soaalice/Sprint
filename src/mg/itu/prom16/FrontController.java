@@ -12,6 +12,8 @@ import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
 
+import com.google.gson.Gson;
+
 import dev.CustomSession;
 import dev.ModelView;
 import dev.util.Mapping;
@@ -24,9 +26,11 @@ public class FrontController extends HttpServlet{
     List<Class<?>> ls;
     HashMap<String,Mapping> hashMap;
     CustomSession session;
+    Gson gson;
 
     public void init() throws ServletException {
         super.init();
+        gson = new Gson();
         scan();
     }
 
@@ -118,6 +122,35 @@ public class FrontController extends HttpServlet{
         return "";
     }
 
+    void afficher(Object value, HttpServletRequest request, HttpServletResponse response, PrintWriter out) throws Exception{
+        if (value instanceof ModelView mw) {
+            HashMap<String, Object> datas = mw.getData();
+            for (String key : datas.keySet()) {
+                request.setAttribute(key, datas.get(key));
+            }
+            RequestDispatcher dispatcher = request.getRequestDispatcher(mw.getUrl());
+            dispatcher.forward(request, response);
+        } else if (value instanceof String) {
+            out.println(value);
+        } else {
+            throw new ServletException("Le type de retour doit etre un String ou un ModelView");
+        }
+    }
+
+    void afficherJson(Object value, HttpServletRequest request, HttpServletResponse response, PrintWriter out) throws Exception{
+        response.setContentType("application/json");
+        response.setCharacterEncoding("UTF-8");
+
+        String json = "";
+        if (value instanceof ModelView mw) {
+            json = gson.toJson(mw.getData());
+        } else {
+            json = gson.toJson(value);
+        }
+
+        out.println(json);
+    }
+
     protected void processRequest(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         response.setContentType("text/plain");
@@ -141,20 +174,16 @@ public class FrontController extends HttpServlet{
                             requestParameter.put(key, request.getParameter(key));
                         }
                         // out.println(obj.getClass().getDeclaredMethod(m.methode).invoke(obj));
+
                         // Appeler la methode avec les parametres, l'objet et la session
                         Object value = m.invoke(requestParameter,obj,session);
-                        if (value instanceof ModelView mw) {
-                            HashMap<String, Object> datas = mw.getData();
-                            for (String key : datas.keySet()) {
-                                request.setAttribute(key, datas.get(key));
-                            }
-                            RequestDispatcher dispatcher = request.getRequestDispatcher(mw.getUrl());
-                            dispatcher.forward(request, response);
-                        } else if (value instanceof String) {
-                            out.println(value);
-                        } else {
-                            throw new ServletException("Le type de retour doit etre un String ou un ModelView");
+                        // Raha manana annotation RestApi ilay methode
+                        if (m.isRestApi()) {
+                            afficherJson(value, request, response, out);
+                        } else{
+                            afficher(value, request, response, out);
                         }
+                        
                     } catch (Exception e) {
                         // out.println(e.getMessage());
                         e.printStackTrace(out);
