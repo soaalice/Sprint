@@ -9,12 +9,17 @@ import java.util.Set;
 import dev.CustomSession;
 import jakarta.servlet.http.HttpSession;
 import mg.annotation.Param;
+import mg.annotation.RestApi;
 
 public class Mapping {
     public String classe;
     // public Method methode;
 
     private HashMap<Verb, Method> verbMethod;
+
+    public boolean isRestApi(){
+        return methode.isAnnotationPresent(RestApi.class);
+    }
 
     public Object invoke(HashMap<String,String> requestParameter,Object obj, CustomSession session, Verb v) throws Exception{
         Method methode = verbMethod.get(v);
