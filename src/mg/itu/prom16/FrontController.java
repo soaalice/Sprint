@@ -7,6 +7,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.net.URL;
 import java.net.URLDecoder;
+import java.rmi.ServerException;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -15,10 +16,13 @@ import java.util.List;
 import dev.CustomSession;
 import dev.ModelView;
 import dev.util.Mapping;
+import dev.util.Verb;
 import jakarta.servlet.*;
 import jakarta.servlet.http.*;
 import mg.annotation.AnnotationController;
 import mg.annotation.Get;
+import mg.annotation.Post;
+import mg.annotation.Url;
 
 public class FrontController extends HttpServlet{
     List<Class<?>> ls;
@@ -91,21 +95,35 @@ public class FrontController extends HttpServlet{
         HashMap<String, Mapping> map = new HashMap<>();
         for (Class<?> class1 : ls) {
             Method[] methods = class1.getDeclaredMethods();
-            for (Method m : methods) {
-                if (m.isAnnotationPresent(Get.class)) {
-                    Mapping mapping = new Mapping();
-                    mapping.classe = class1.getSimpleName();
-                    mapping.methode = m;
-                    Get annotation = m.getAnnotation(Get.class);
-                    if (map.containsKey(annotation.url())) {
-                        throw new ServletException("Doublon: l'url '"+annotation.url()+"'' est attribuée dans "+map.get(annotation.url()).classe+" et "+mapping.classe);
+            for (Method method : methods) {
+                if (method.isAnnotationPresent(Url.class)) {
+                    Url annotation = method.getAnnotation(Url.class);
+
+                    // Alaina raha efa tao, new-ena raha mbola
+                    Mapping mapping ;
+                    if (map.containsKey(annotation.value())) {
+                        mapping = map.get(annotation.value());
+                    } else {
+                        mapping = new Mapping();
+                        mapping.classe = class1.getSimpleName();
+                        map.put(annotation.value(), mapping);
                     }
-                    map.put(annotation.url(), mapping);
+
+                    Verb verb = getVerb(method);
+                    try {
+                        mapping.setVerbMethod(verb, method);
+                    } catch (Exception e) {
+                        throw new ServletException(e.getMessage());
+                    }
                 }
             }
         }
 
         return map;
+    }
+
+    Verb getVerb(Method method){
+        return method.isAnnotationPresent(Post.class) ? Verb.POST : Verb.GET;
     }
 
     String extract(String uri) {
@@ -118,19 +136,19 @@ public class FrontController extends HttpServlet{
         return "";
     }
 
-    protected void processRequest(HttpServletRequest request, HttpServletResponse response)
+    protected void processRequest(HttpServletRequest request, HttpServletResponse response, Verb verb)
             throws ServletException, IOException {
         response.setContentType("text/plain");
         try (PrintWriter out = response.getWriter()) {
             // out.println("URL: "+request.getRequestURL());
             try {
                 String uri = extract(request.getRequestURI());
-                Mapping m = hashMap.get(uri);
-                if (m == null) {
+                Mapping mapping = hashMap.get(uri);
+                if (mapping == null) {
                     throw new ServletException("Aucun controller n'a une methode ayant le mapping : '" + uri+"'");
                 }else{
                     try {
-                        Object obj = Class.forName(this.getInitParameter("controllerPackage")+"."+m.classe).newInstance();
+                        Object obj = Class.forName(this.getInitParameter("controllerPackage")+"."+mapping.classe).newInstance();
 
                         // Atao anaty HashMap ny cles sy ny parametres any
                         Enumeration<String> keys=request.getParameterNames();
@@ -142,7 +160,8 @@ public class FrontController extends HttpServlet{
                         }
                         // out.println(obj.getClass().getDeclaredMethod(m.methode).invoke(obj));
                         // Appeler la methode avec les parametres, l'objet et la session
-                        Object value = m.invoke(requestParameter,obj,session);
+                        Object value = mapping.invoke(requestParameter,obj,session, verb);
+                        
                         if (value instanceof ModelView mw) {
                             HashMap<String, Object> datas = mw.getData();
                             for (String key : datas.keySet()) {
@@ -173,13 +192,13 @@ public class FrontController extends HttpServlet{
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-       processRequest(request, response);
+       processRequest(request, response, Verb.GET);
     }
 
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-       processRequest(request, response);
+       processRequest(request, response, Verb.POST);
     }
 
     @Override
