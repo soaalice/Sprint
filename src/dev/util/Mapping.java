@@ -15,9 +15,10 @@ public class Mapping {
     public String classe;
     // public Method methode;
 
-    private HashMap<Verb, Method> verbMethod;
+    private HashMap<Verb, Method> verbMethod = new HashMap<>();
 
-    public boolean isRestApi(){
+    public boolean isRestApi(Verb verb){
+        Method methode = verbMethod.get(verb);
         return methode.isAnnotationPresent(RestApi.class);
     }
 

@@ -97,8 +97,8 @@ public class FrontController extends HttpServlet{
 
     HashMap<String, Mapping> initializeHashMap(List<Class<?>> ls) throws ServletException{
         HashMap<String, Mapping> map = new HashMap<>();
-        for (Class<?> class1 : ls) {
-            Method[] methods = class1.getDeclaredMethods();
+        for (Class<?> controller : ls) {
+            Method[] methods = controller.getDeclaredMethods();
             for (Method method : methods) {
                 if (method.isAnnotationPresent(Url.class)) {
                     Url annotation = method.getAnnotation(Url.class);
@@ -109,8 +109,12 @@ public class FrontController extends HttpServlet{
                         mapping = map.get(annotation.value());
                     } else {
                         mapping = new Mapping();
-                        mapping.classe = class1.getSimpleName();
+                        mapping.classe = controller.getSimpleName();
                         map.put(annotation.value(), mapping);
+                    }
+
+                    if (mapping.classe.compareToIgnoreCase(controller.getSimpleName()) != 0) {
+                        throw new ServletException("L'url '"+annotation.value()+"' ne peut pas etre assignee a deux controllers differents.");
                     }
 
                     Verb verb = getVerb(method);
@@ -169,35 +173,6 @@ public class FrontController extends HttpServlet{
         out.println(json);
     }
 
-    void afficher(Object value, HttpServletRequest request, HttpServletResponse response, PrintWriter out) throws Exception{
-        if (value instanceof ModelView mw) {
-            HashMap<String, Object> datas = mw.getData();
-            for (String key : datas.keySet()) {
-                request.setAttribute(key, datas.get(key));
-            }
-            RequestDispatcher dispatcher = request.getRequestDispatcher(mw.getUrl());
-            dispatcher.forward(request, response);
-        } else if (value instanceof String) {
-            out.println(value);
-        } else {
-            throw new ServletException("Le type de retour doit etre un String ou un ModelView");
-        }
-    }
-
-    void afficherJson(Object value, HttpServletRequest request, HttpServletResponse response, PrintWriter out) throws Exception{
-        response.setContentType("application/json");
-        response.setCharacterEncoding("UTF-8");
-
-        String json = "";
-        if (value instanceof ModelView mw) {
-            json = gson.toJson(mw.getData());
-        } else {
-            json = gson.toJson(value);
-        }
-
-        out.println(json);
-    }
-
     protected void processRequest(HttpServletRequest request, HttpServletResponse response, Verb verb)
             throws ServletException, IOException {
         response.setContentType("text/plain");
@@ -220,13 +195,12 @@ public class FrontController extends HttpServlet{
                             System.out.println(key);
                             requestParameter.put(key, request.getParameter(key));
                         }
-                        // out.println(obj.getClass().getDeclaredMethod(m.methode).invoke(obj));
 
                         // Appeler la methode avec les parametres, l'objet et la session
                         Object value = mapping.invoke(requestParameter,obj,session, verb);
                         
                         // Raha manana annotation RestApi ilay methode
-                        if (m.isRestApi()) {
+                        if (mapping.isRestApi(verb)) {
                             afficherJson(value, request, response, out);
                         } else{
                             afficher(value, request, response, out);
