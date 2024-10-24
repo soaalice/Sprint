@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.Set;
 
 import dev.CustomSession;
+import dev.exceptions.VerbNotFoundException;
 import jakarta.servlet.http.HttpSession;
 import mg.annotation.Param;
 import mg.annotation.RestApi;
@@ -24,6 +25,9 @@ public class Mapping {
 
     public Object invoke(HashMap<String,String> requestParameter,Object obj, CustomSession session, Verb v) throws Exception{
         Method methode = verbMethod.get(v);
+        if (methode == null) {
+            throw new VerbNotFoundException(v+" n'est pas assignee a cet url.");
+        }
         Parameter[] parameterFunction = methode.getParameters();
         Object[] parameterValues=new Object[parameterFunction.length];
         for(int i=0;i<parameterFunction.length;i++){
