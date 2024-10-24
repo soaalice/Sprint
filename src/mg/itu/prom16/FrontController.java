@@ -17,6 +17,7 @@ import com.google.gson.Gson;
 
 import dev.CustomSession;
 import dev.ModelView;
+import dev.exceptions.VerbNotFoundException;
 import dev.util.Mapping;
 import dev.util.Verb;
 import jakarta.servlet.*;
@@ -182,7 +183,9 @@ public class FrontController extends HttpServlet{
                 String uri = extract(request.getRequestURI());
                 Mapping mapping = hashMap.get(uri);
                 if (mapping == null) {
-                    throw new ServletException("Aucun controller n'a une methode ayant le mapping : '" + uri+"'");
+                    // throw new ServletException("Aucun controller n'a une methode ayant le mapping : '" + uri+"'");\
+                    response.sendError(HttpServletResponse.SC_NOT_FOUND, 
+                            "Aucun controller n'a une methode ayant le mapping : '" + uri + "'");
                 }else{
                     try {
                         Object obj = Class.forName(this.getInitParameter("controllerPackage")+"."+mapping.classe).newInstance();
@@ -208,6 +211,9 @@ public class FrontController extends HttpServlet{
                         
                     } catch (Exception e) {
                         // out.println(e.getMessage());
+                        if (e instanceof VerbNotFoundException) {
+                            response.sendError(HttpServletResponse.SC_NOT_FOUND, e.getMessage());
+                        }
                         e.printStackTrace(out);
                     }
                 }    
