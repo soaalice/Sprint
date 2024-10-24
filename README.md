@@ -1,7 +1,8 @@
-# Sprint6
+# Sprint9
 
 Pour utiliser le FrontController il faut configurer votre web.xml comme tel:
 
+```xml
 <?xml version="1.0" encoding="UTF-8"?>
 <web-app version="3.1" xmlns="http://xmlns.jcp.org/xml/ns/javaee" 
                        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
@@ -11,7 +12,7 @@ Pour utiliser le FrontController il faut configurer votre web.xml comme tel:
         <servlet-class>mg.itu.prom16.FrontController</servlet-class>
         <init-param>
             <param-name>controllerPackage</param-name>
-            <param-value>dev.controllers</param-value>
+            <param-value>chemin.de.votre.package</param-value>
         </init-param>
     </servlet>
     <servlet-mapping>
@@ -19,9 +20,11 @@ Pour utiliser le FrontController il faut configurer votre web.xml comme tel:
         <url-pattern>/</url-pattern>
     </servlet-mapping>
 </web-app>
+```
 
 La valeur dans < param-value > devrait contenir le chemin de votre package.
-Et vos controllers devront avoir l'annotation @AnnotationController, et leurs fonctions par @Get(url="votreUrl").
+Vos controllers devront avoir l'annotation @AnnotationController, et leurs fonctions @Get(url="votreUrl").
 Si ces fonctions recquierent des parametres, annotez-les avec @Param(name = "nomParametre").
-Ces fonctions doivent retourner soit un String soit un ModelView (dont les datas sont definies).
+Ces fonctions doivent retourner soit un String soit un ModelView (dont les datas sont definies)
+Sinon elles peuvent egalement retourner des objets si la fonction est annotee @RestApi.
 Assurez-vous que la page désignée par l'url de votre ModelView existe.

@@ -13,14 +13,18 @@ import mg.annotation.RestApi;
 
 public class Mapping {
     public String classe;
-    public Method methode;
+    // public Method methode;
 
-    public boolean isRestApi(){
+    private HashMap<Verb, Method> verbMethod = new HashMap<>();
+
+    public boolean isRestApi(Verb verb){
+        Method methode = verbMethod.get(verb);
         return methode.isAnnotationPresent(RestApi.class);
     }
 
-    public Object invoke(HashMap<String,String> requestParameter,Object obj, CustomSession session) throws Exception{
-        Parameter[] parameterFunction=this.methode.getParameters();
+    public Object invoke(HashMap<String,String> requestParameter,Object obj, CustomSession session, Verb v) throws Exception{
+        Method methode = verbMethod.get(v);
+        Parameter[] parameterFunction = methode.getParameters();
         Object[] parameterValues=new Object[parameterFunction.length];
         for(int i=0;i<parameterFunction.length;i++){
             //Tetezina daholy izay nom de parametres nangatahina tany amin'ilay fonction an'ilay controller
@@ -50,7 +54,7 @@ public class Mapping {
                 throw new Exception("Ce parametre n'est pas annoté.");
             }
         }
-        return this.methode.invoke(obj, parameterValues);
+        return methode.invoke(obj, parameterValues);
     }
 
     public HashMap<String,String> getAttributeValue(HashMap<String,String> requestParameter,String parameterName){
@@ -94,5 +98,12 @@ public class Mapping {
             return Float.parseFloat(value);
         }
         return value;
+    }
+
+    public void setVerbMethod(Verb verb, Method method) throws Exception{
+        if (verbMethod.containsKey(verb)) {
+            throw new Exception("La methode "+method.getName()+" est deja annotee a "+verb.toString());
+        }
+        verbMethod.put(verb, method);
     }
 }
