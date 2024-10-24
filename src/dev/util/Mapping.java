@@ -8,14 +8,16 @@ import java.util.Set;
 
 import dev.CustomSession;
 import dev.exceptions.VerbNotFoundException;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
+import jakarta.servlet.http.Part;
+import mg.annotation.FileBytes;
+import mg.annotation.FileName;
 import mg.annotation.Param;
 import mg.annotation.RestApi;
 
 public class Mapping {
     public String classe;
-    // public Method methode;
-
     private HashMap<Verb, Method> verbMethod = new HashMap<>();
 
     public boolean isRestApi(Verb verb){
@@ -23,7 +25,7 @@ public class Mapping {
         return methode.isAnnotationPresent(RestApi.class);
     }
 
-    public Object invoke(HashMap<String,String> requestParameter,Object obj, CustomSession session, Verb v) throws Exception{
+    public Object invoke(HttpServletRequest request,Object obj, CustomSession session, Verb v) throws Exception{
         Method methode = verbMethod.get(v);
         if (methode == null) {
             throw new VerbNotFoundException(v+" n'est pas assignee a cet url.");
@@ -36,24 +38,34 @@ public class Mapping {
                 Param paramName=parameterFunction[i].getAnnotation(Param.class);
                 String parameterNameFunction=paramName.name();
                 //Atao cles ilay nom de parametres de raha tsy misy izy de null no azo
-                System.out.println(parameterNameFunction);
                 if(parameterFunction[i].getType().isPrimitive() || parameterFunction[i].getType().equals(String.class)){
-                    parameterValues[i]=requestParameter.get(parameterNameFunction);
-                }
-                else if (parameterFunction[i].getType().equals(CustomSession.class)) {
+                    parameterValues[i]=request.getParameter(parameterNameFunction);
+                } else if (parameterFunction[i].getType().equals(CustomSession.class)) {
                     parameterValues[i] = session;
-                } 
-                else {
-                    HashMap<String,String> values=getAttributeValue(requestParameter,parameterNameFunction);
+                } else {
+                    HashMap<String,String> values=getAttributeValue(request,parameterNameFunction);
                     Object objValue=parameterFunction[i].getType().getConstructor().newInstance();
                     setValue(objValue, values);
                     parameterValues[i]=objValue;
                 }
-                System.out.println(parameterValues[i]);
             } 
+
             else if (parameterFunction[i].getType().equals(CustomSession.class)) {
                 parameterValues[i] = session;
+            } 
+
+            else if (parameterFunction[i].isAnnotationPresent(FileName.class)) {
+                FileName fileName = parameterFunction[i].getAnnotation(FileName.class);
+                Part part = request.getPart(fileName.value());
+                parameterValues[i] = part.getSubmittedFileName();
+            } 
+
+            else if (parameterFunction[i].isAnnotationPresent(FileBytes.class)) {
+                FileBytes fileBytes = parameterFunction[i].getAnnotation(FileBytes.class);
+                Part part = request.getPart(fileBytes.value());
+                parameterValues[i] = part.getInputStream().readAllBytes();
             }
+
             else {
                 throw new Exception("Ce parametre n'est pas annoté.");
             }
@@ -61,12 +73,13 @@ public class Mapping {
         return methode.invoke(obj, parameterValues);
     }
 
-    public HashMap<String,String> getAttributeValue(HashMap<String,String> requestParameter,String parameterName){
+    public HashMap<String,String> getAttributeValue(HttpServletRequest request,String parameterName){
         HashMap<String,String> valiny=new HashMap<String,String>();
-        Set<String> keys=requestParameter.keySet();
-        for (String key : keys) {
+        Enumeration<String> keys=request.getParameterNames();
+        while (keys.hasMoreElements()) {
+            String key = keys.nextElement();
             if(key.contains(parameterName+".")){
-                valiny.put(key.split("[.]")[1], requestParameter.get(key));
+                valiny.put(key.split("[.]")[1], request.getParameter(key));
             }
         }
         return valiny;
