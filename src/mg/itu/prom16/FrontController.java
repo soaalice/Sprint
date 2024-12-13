@@ -17,6 +17,7 @@ import com.google.gson.Gson;
 
 import dev.CustomSession;
 import dev.ModelView;
+import dev.exceptions.ValidationException;
 import dev.exceptions.VerbNotFoundException;
 import dev.util.Mapping;
 import dev.util.Verb;
@@ -24,9 +25,9 @@ import jakarta.servlet.*;
 import jakarta.servlet.annotation.MultipartConfig;
 import jakarta.servlet.http.*;
 import mg.annotation.AnnotationController;
-import mg.annotation.Get;
-import mg.annotation.Post;
 import mg.annotation.Url;
+import mg.annotation.verbs.Get;
+import mg.annotation.verbs.Post;
 
 @MultipartConfig
 public class FrontController extends HttpServlet{
@@ -192,8 +193,12 @@ public class FrontController extends HttpServlet{
                     try {
                         Object obj = Class.forName(this.getInitParameter("controllerPackage")+"."+mapping.classe).newInstance();
 
+                        List<Exception> exceptions = new ArrayList<>();
                         // Appeler la methode avec les parametres, l'objet, la session et la methode d'action (verb)
-                        Object value = mapping.invoke(request,obj,session, verb);
+                        Object value = mapping.invoke(request,obj,session, verb, exceptions);
+                        if(exceptions.size()!=0){
+                            throw new ValidationException(exceptions);
+                        }
                         
                         // Raha manana annotation RestApi ilay methode -> Json sinon ModelView/String
                         if (mapping.isRestApi(verb)) {
