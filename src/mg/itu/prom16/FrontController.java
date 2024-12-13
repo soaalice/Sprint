@@ -17,15 +17,16 @@ import com.google.gson.Gson;
 
 import dev.CustomSession;
 import dev.ModelView;
+import dev.exceptions.ValidationException;
 import dev.exceptions.VerbNotFoundException;
 import dev.util.Mapping;
 import dev.util.Verb;
 import jakarta.servlet.*;
 import jakarta.servlet.http.*;
 import mg.annotation.AnnotationController;
-import mg.annotation.Get;
-import mg.annotation.Post;
 import mg.annotation.Url;
+import mg.annotation.verbs.Get;
+import mg.annotation.verbs.Post;
 
 public class FrontController extends HttpServlet{
     List<Class<?>> ls;
@@ -189,18 +190,12 @@ public class FrontController extends HttpServlet{
                 }else{
                     try {
                         Object obj = Class.forName(this.getInitParameter("controllerPackage")+"."+mapping.classe).newInstance();
-
-                        // Atao anaty HashMap ny cles sy ny parametres any
-                        Enumeration<String> keys=request.getParameterNames();
-                        HashMap<String,String> requestParameter=new HashMap<String,String>();
-                        while(keys.hasMoreElements()){
-                            String key=keys.nextElement();
-                            System.out.println(key);
-                            requestParameter.put(key, request.getParameter(key));
+                        List<Exception> exceptions = new ArrayList<>();
+                        // Appeler la methode avec les parametres, l'objet, la session et la methode d'action (verb)
+                        Object value = mapping.invoke(request,obj,session, verb, exceptions);
+                        if(exceptions.size()!=0){
+                            throw new ValidationException(exceptions);
                         }
-
-                        // Appeler la methode avec les parametres, l'objet et la session
-                        Object value = mapping.invoke(requestParameter,obj,session, verb);
                         
                         // Raha manana annotation RestApi ilay methode
                         if (mapping.isRestApi(verb)) {
