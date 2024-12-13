@@ -22,12 +22,14 @@ import dev.exceptions.VerbNotFoundException;
 import dev.util.Mapping;
 import dev.util.Verb;
 import jakarta.servlet.*;
+import jakarta.servlet.annotation.MultipartConfig;
 import jakarta.servlet.http.*;
 import mg.annotation.AnnotationController;
 import mg.annotation.Url;
 import mg.annotation.verbs.Get;
 import mg.annotation.verbs.Post;
 
+@MultipartConfig
 public class FrontController extends HttpServlet{
     List<Class<?>> ls;
     HashMap<String,Mapping> hashMap;
@@ -190,6 +192,7 @@ public class FrontController extends HttpServlet{
                 }else{
                     try {
                         Object obj = Class.forName(this.getInitParameter("controllerPackage")+"."+mapping.classe).newInstance();
+
                         List<Exception> exceptions = new ArrayList<>();
                         // Appeler la methode avec les parametres, l'objet, la session et la methode d'action (verb)
                         Object value = mapping.invoke(request,obj,session, verb, exceptions);
@@ -197,7 +200,7 @@ public class FrontController extends HttpServlet{
                             throw new ValidationException(exceptions);
                         }
                         
-                        // Raha manana annotation RestApi ilay methode
+                        // Raha manana annotation RestApi ilay methode -> Json sinon ModelView/String
                         if (mapping.isRestApi(verb)) {
                             afficherJson(value, request, response, out);
                         } else{
