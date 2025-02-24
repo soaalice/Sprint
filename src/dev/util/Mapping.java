@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Set;
 
 import dev.CustomSession;
+import dev.exceptions.FieldValidationException;
 import dev.exceptions.VerbNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.Part;
@@ -114,7 +115,9 @@ public class Mapping {
                 Annotation annotationField=parameter.getAnnotation(validator.getAnnotation());
                 Exception exception=validator.validateInside(objParam, annotationField);
                 if(exception!=null){
-                    exceptions.add(exception);
+                    String fieldName = parameter.getName();
+                    FieldValidationException fieldException = new FieldValidationException(fieldName, exception.getMessage());
+                    exceptions.add(fieldException);
                 }
             }
         }
@@ -130,7 +133,10 @@ public class Mapping {
                 Annotation annotationField=field.getAnnotation(validator.getAnnotation());
                 Exception exception=validator.validateInside(obj, annotationField);
                 if(exception!=null){
-                    exceptions.add(exception);
+                    String fieldName = field.getName();
+                    FieldValidationException fieldException = new FieldValidationException(fieldName,
+                            exception.getMessage());
+                    exceptions.add(fieldException);
                 }
             }
         }
