@@ -177,6 +177,18 @@ public class FrontController extends HttpServlet{
         out.println(json);
     }
 
+    void redirectToErrorUrl(String url, HttpServletRequest request, HttpServletResponse response, List<Exception> exceptions) throws Exception{
+        request.setAttribute("validationErrors", exceptions);
+        HttpServletRequest wrappedRequest = new HttpServletRequestWrapper(request) {
+            @Override
+            public String getMethod() {
+                return "GET";
+            }
+        };
+        RequestDispatcher dispatcher = request.getRequestDispatcher(url);
+        dispatcher.forward(wrappedRequest, response);
+    }
+
     protected void processRequest(HttpServletRequest request, HttpServletResponse response, Verb verb)
             throws ServletException, IOException {
         response.setContentType("text/plain");
@@ -197,7 +209,13 @@ public class FrontController extends HttpServlet{
                         // Appeler la methode avec les parametres, l'objet, la session et la methode d'action (verb)
                         Object value = mapping.invoke(request,obj,session, verb, exceptions);
                         if(exceptions.size()!=0){
-                            throw new ValidationException(exceptions);
+                            // throw new ValidationException(exceptions);
+                            
+                            String errorUrl = mapping.getErrorUrl(verb);
+                            if (errorUrl != null) {
+                                redirectToErrorUrl(errorUrl, request, response, exceptions);
+                                return;
+                            }
                         }
                         
                         // Raha manana annotation RestApi ilay methode -> Json sinon ModelView/String

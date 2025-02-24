@@ -13,6 +13,7 @@ import dev.CustomSession;
 import dev.exceptions.VerbNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.Part;
+import mg.annotation.ErrorUrl;
 import mg.annotation.Param;
 import mg.annotation.RestApi;
 import mg.annotation.uploads.FileBytes;
@@ -29,6 +30,14 @@ public class Mapping {
     public boolean isRestApi(Verb verb){
         Method methode = verbMethod.get(verb);
         return methode.isAnnotationPresent(RestApi.class);
+    }
+
+    public String getErrorUrl(Verb verb){
+        Method methode = verbMethod.get(verb);
+        if (methode.isAnnotationPresent(ErrorUrl.class)) {
+            return methode.getAnnotation(ErrorUrl.class).value();   
+        }
+        return null;
     }
 
     public Object invoke(HttpServletRequest request,Object obj, CustomSession session, Verb v, List<Exception> exceptions) throws Exception{
