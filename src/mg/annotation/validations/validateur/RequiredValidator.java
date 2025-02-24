@@ -13,6 +13,11 @@ public class RequiredValidator extends Validator<Required>{
         if(o==null){
             return new Exception(annotation.message());
         }
+        if (o instanceof String string) {
+            if (string.isEmpty()) {
+                return new Exception(annotation.message());
+            }
+        }
         return null;
     }
 }
