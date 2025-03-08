@@ -214,6 +214,8 @@ public class FrontController extends HttpServlet{
                         Object obj = Class.forName(this.getInitParameter("controllerPackage")+"."+mapping.classe).newInstance();
 
                         List<Exception> exceptions = new ArrayList<>();
+                        session = new CustomSession(request.getSession());
+
                         // Appeler la methode avec les parametres, l'objet, la session et la methode d'action (verb)
                         Object value = mapping.invoke(request,obj,session, verb, exceptions);
                         if(exceptions.size()!=0){
