@@ -11,12 +11,16 @@ import java.util.Set;
 
 import dev.CustomSession;
 import dev.exceptions.FieldValidationException;
+import dev.exceptions.UnauthororizedException;
 import dev.exceptions.VerbNotFoundException;
+import dev.util.Authentificator;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.Part;
 import mg.annotation.ErrorUrl;
 import mg.annotation.Param;
 import mg.annotation.RestApi;
+import mg.annotation.authentification.Authentified;
+import mg.annotation.authentification.Public;
 import mg.annotation.uploads.FileBytes;
 import mg.annotation.uploads.FileName;
 import mg.annotation.validations.annotation.Validation;
@@ -27,6 +31,15 @@ import java.lang.annotation.Annotation;
 public class Mapping {
     public String classe;
     private HashMap<Verb, Method> verbMethod = new HashMap<>();
+    private final Class<?> controller;
+
+    public Mapping(Class<?> controller) {
+        this.controller = controller;
+    }
+
+    public Class<?> getController() {
+        return controller;
+    }
 
     public boolean isRestApi(Verb verb){
         Method methode = verbMethod.get(verb);
@@ -41,12 +54,31 @@ public class Mapping {
         return null;
     }
 
+    void checkAuthentification(HttpServletRequest request, Method methode) throws Exception{
+        String errorMessage  = "You are not allowed to access this URL";
+        if (controller.isAnnotationPresent(Authentified.class)
+                && !methode.isAnnotationPresent(Public.class)
+                && !methode.isAnnotationPresent(Authentified.class)) {
+            Authentified authenticated = controller.getAnnotation(Authentified.class);
+            if (!Authentificator.isAuthorized(request, authenticated))
+                throw new UnauthororizedException(errorMessage);
+        }
+
+        if (methode.isAnnotationPresent(Authentified.class)) {
+            Authentified authenticated = methode.getAnnotation(Authentified.class);
+            if (!Authentificator.isAuthorized(request, authenticated))
+                throw new UnauthororizedException(errorMessage);
+        }
+    }
+
     public Object invoke(HttpServletRequest request,Object obj, CustomSession session, Verb v, List<Exception> exceptions) throws Exception{
 
         Method methode = verbMethod.get(v);
         if (methode == null) {
             throw new VerbNotFoundException(v+" n'est pas assignee a cet url.");
         }
+
+        checkAuthentification(request, methode);
 
         Parameter[] parameterFunction = methode.getParameters();
         Object[] parameterValues=new Object[parameterFunction.length];

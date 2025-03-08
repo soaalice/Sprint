@@ -17,6 +17,7 @@ import com.google.gson.Gson;
 
 import dev.CustomSession;
 import dev.ModelView;
+import dev.exceptions.UnauthororizedException;
 import dev.exceptions.ValidationException;
 import dev.exceptions.VerbNotFoundException;
 import dev.util.Mapping;
@@ -35,10 +36,17 @@ public class FrontController extends HttpServlet{
     HashMap<String,Mapping> hashMap;
     CustomSession session;
     Gson gson;
+    public static String SESSION_AUTHENTIFIED, SESSION_ROLE;
 
     public void init() throws ServletException {
         super.init();
         gson = new Gson();
+
+        SESSION_AUTHENTIFIED = getInitParameter("session_authentified") != null
+                ? getInitParameter("session_authentified")
+                : "authentified";
+        SESSION_ROLE = getInitParameter("session_role") != null ? getInitParameter("session_role") : "role";
+
         scan();
     }
 
@@ -112,7 +120,7 @@ public class FrontController extends HttpServlet{
                     if (map.containsKey(annotation.value())) {
                         mapping = map.get(annotation.value());
                     } else {
-                        mapping = new Mapping();
+                        mapping = new Mapping(controller.getClass());
                         mapping.classe = controller.getSimpleName();
                         map.put(annotation.value(), mapping);
                     }
@@ -229,6 +237,9 @@ public class FrontController extends HttpServlet{
                         // out.println(e.getMessage());
                         if (e instanceof VerbNotFoundException) {
                             response.sendError(HttpServletResponse.SC_NOT_FOUND, e.getMessage());
+                        }
+                        if (e instanceof UnauthororizedException) {
+                            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, e.getMessage());
                         }
                         e.printStackTrace(out);
                     }
