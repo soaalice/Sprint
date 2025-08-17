@@ -32,9 +32,11 @@ public class Mapping {
     public String classe;
     private HashMap<Verb, Method> verbMethod = new HashMap<>();
     private final Class<?> controller;
+    private final Annotation[] annotationsController;
 
-    public Mapping(Class<?> controller) {
+    public Mapping(Class<?> controller, Annotation[] annotationsController) {
         this.controller = controller;
+        this.annotationsController = annotationsController;
     }
 
     public Class<?> getController() {
@@ -54,15 +56,36 @@ public class Mapping {
         return null;
     }
 
+    private boolean isAnnotationPresent(Class<?> annotationClass){
+        for (Annotation annotation : annotationsController) {
+            if (annotation.annotationType().equals(annotationClass)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private Annotation getAnnotation(Class<?> annotationClass) {
+        for (Annotation annotation : annotationsController) {
+            if (annotation.annotationType().equals(annotationClass)) {
+                return annotation;
+            }
+        }
+        return null;
+    }
+
     void checkAuthentification(HttpServletRequest request, Method methode) throws Exception{
         String errorMessage  = "You are not allowed to access this URL";
-        if (controller.isAnnotationPresent(Authentified.class)
+        System.out.println("DEBUG checkAuthentification");
+        if (isAnnotationPresent(Authentified.class)
                 && !methode.isAnnotationPresent(Public.class)
                 && !methode.isAnnotationPresent(Authentified.class)) {
-            Authentified authenticated = controller.getAnnotation(Authentified.class);
+            System.out.println("DEBUG checkAuthentification - controller");
+            Authentified authenticated = (Authentified) getAnnotation(Authentified.class);
             if (!Authentificator.isAuthorized(request, authenticated))
+                System.err.println("DEBUG checkAuthentification - controller -> unauthorized");
                 throw new UnauthororizedException(errorMessage);
-        }
+        } 
 
         if (methode.isAnnotationPresent(Authentified.class)) {
             Authentified authenticated = methode.getAnnotation(Authentified.class);
@@ -119,7 +142,7 @@ public class Mapping {
             }
 
             else {
-                throw new Exception("Ce parametre n'est pas annoté.");
+                throw new Exception("Le paramètre "+ parameterFunction[i].getName()+" de "+ methode.getName() +" n'est pas annoté");
             }
         }
         return methode.invoke(obj, parameterValues);

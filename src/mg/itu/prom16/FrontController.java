@@ -120,7 +120,7 @@ public class FrontController extends HttpServlet{
                     if (map.containsKey(annotation.value())) {
                         mapping = map.get(annotation.value());
                     } else {
-                        mapping = new Mapping(controller.getClass());
+                        mapping = new Mapping(controller.getClass(), controller.getAnnotations());
                         mapping.classe = controller.getSimpleName();
                         map.put(annotation.value(), mapping);
                     }
