@@ -11,12 +11,16 @@ import java.util.Set;
 
 import dev.CustomSession;
 import dev.exceptions.FieldValidationException;
+import dev.exceptions.UnauthororizedException;
 import dev.exceptions.VerbNotFoundException;
+import dev.util.Authentificator;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.Part;
 import mg.annotation.ErrorUrl;
 import mg.annotation.Param;
 import mg.annotation.RestApi;
+import mg.annotation.authentification.Authentified;
+import mg.annotation.authentification.Public;
 import mg.annotation.uploads.FileBytes;
 import mg.annotation.uploads.FileName;
 import mg.annotation.validations.annotation.Validation;
@@ -27,6 +31,17 @@ import java.lang.annotation.Annotation;
 public class Mapping {
     public String classe;
     private HashMap<Verb, Method> verbMethod = new HashMap<>();
+    private final Class<?> controller;
+    private final Annotation[] annotationsController;
+
+    public Mapping(Class<?> controller, Annotation[] annotationsController) {
+        this.controller = controller;
+        this.annotationsController = annotationsController;
+    }
+
+    public Class<?> getController() {
+        return controller;
+    }
 
     public boolean isRestApi(Verb verb){
         Method methode = verbMethod.get(verb);
@@ -41,12 +56,52 @@ public class Mapping {
         return null;
     }
 
+    private boolean isAnnotationPresent(Class<?> annotationClass){
+        for (Annotation annotation : annotationsController) {
+            if (annotation.annotationType().equals(annotationClass)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private Annotation getAnnotation(Class<?> annotationClass) {
+        for (Annotation annotation : annotationsController) {
+            if (annotation.annotationType().equals(annotationClass)) {
+                return annotation;
+            }
+        }
+        return null;
+    }
+
+    void checkAuthentification(HttpServletRequest request, Method methode) throws Exception{
+        String errorMessage  = "You are not allowed to access this URL";
+        System.out.println("DEBUG checkAuthentification");
+        if (isAnnotationPresent(Authentified.class)
+                && !methode.isAnnotationPresent(Public.class)
+                && !methode.isAnnotationPresent(Authentified.class)) {
+            System.out.println("DEBUG checkAuthentification - controller");
+            Authentified authenticated = (Authentified) getAnnotation(Authentified.class);
+            if (!Authentificator.isAuthorized(request, authenticated))
+                System.err.println("DEBUG checkAuthentification - controller -> unauthorized");
+                throw new UnauthororizedException(errorMessage);
+        } 
+
+        if (methode.isAnnotationPresent(Authentified.class)) {
+            Authentified authenticated = methode.getAnnotation(Authentified.class);
+            if (!Authentificator.isAuthorized(request, authenticated))
+                throw new UnauthororizedException(errorMessage);
+        }
+    }
+
     public Object invoke(HttpServletRequest request,Object obj, CustomSession session, Verb v, List<Exception> exceptions) throws Exception{
 
         Method methode = verbMethod.get(v);
         if (methode == null) {
             throw new VerbNotFoundException(v+" n'est pas assignee a cet url.");
         }
+
+        checkAuthentification(request, methode);
 
         Parameter[] parameterFunction = methode.getParameters();
         Object[] parameterValues=new Object[parameterFunction.length];
@@ -87,7 +142,7 @@ public class Mapping {
             }
 
             else {
-                throw new Exception("Ce parametre n'est pas annoté.");
+                throw new Exception("Le paramètre "+ parameterFunction[i].getName()+" de "+ methode.getName() +" n'est pas annoté");
             }
         }
         return methode.invoke(obj, parameterValues);

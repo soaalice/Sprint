@@ -403,3 +403,4 @@ FodyWeavers.xsd
 bin/
 lib/
 views/
+temp/
